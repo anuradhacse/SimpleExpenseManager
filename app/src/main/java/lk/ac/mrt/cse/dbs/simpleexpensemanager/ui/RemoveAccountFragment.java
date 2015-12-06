@@ -35,15 +35,13 @@ public class RemoveAccountFragment extends Fragment {
     private ListView lv;
     private ExpenseManager currentExpenseManager;
 
-    // Listview Adapter
+    //  Adapter to listview
     ArrayAdapter<String> adapter;
 
-    // Search EditText
+
     EditText inputSearch;
     Button items;
 
-
-    // ArrayList for Listview
     ArrayList<HashMap<String, String>> productList;
 
     public static RemoveAccountFragment newInstance(ExpenseManager expenseManager) {
@@ -59,18 +57,19 @@ public class RemoveAccountFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_remove_account, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_remove_myaccount, container, false);
         TableLayout changeTableLayout = (TableLayout) rootView.findViewById(R.id.view_table);
         TableRow tableRowHeader = (TableRow) rootView.findViewById(R.id.view_table_header);
 
         currentExpenseManager = (ExpenseManager) getArguments().get(EXPENSE_MANAGER);
-        List<Account> numbers=new ArrayList<>();
+        List<Account> numbers = new ArrayList<>();
         if (currentExpenseManager != null) {
-            numbers=currentExpenseManager.getAccountsDAO().getAccountsList();
+            numbers = currentExpenseManager.getAccountsDAO().getAccountsList();
         }
-        generateTransactionsTable(rootView,changeTableLayout,numbers);
+        generateTransactionsTable(rootView, changeTableLayout, numbers);
         return rootView;
     }
+
     private void generateTransactionsTable(View rootView, TableLayout changeTableLayout,
                                            List<Account> accountList) {
         for (final Account account : accountList) {
@@ -88,7 +87,7 @@ public class RemoveAccountFragment extends Fragment {
             holderName.setText(account.getAccountHolderName());
             tr.addView(holderName);
 
-            Button removeButton=new Button(rootView.getContext());
+            Button removeButton = new Button(rootView.getContext());
             removeButton.setMaxHeight(1);
             removeButton.setWidth(2);
             removeButton.setText("remove");
@@ -112,3 +111,4 @@ public class RemoveAccountFragment extends Fragment {
         }
 
     }
+}

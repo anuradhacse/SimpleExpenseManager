@@ -19,11 +19,11 @@ public class PersistentExpenseManager extends  ExpenseManager {
 
     @Override
     public void setup() throws ExpenseManagerException {
-        TransactionDAO sqlitetransactions = new SQLiteTransactionDAO(MyContext.getCustomAppContext());
-        setTransactionsDAO(sqlitetransactions);
+        TransactionDAO sqlite_transactions = new SQLiteTransactionDAO();
+        setTransactionsDAO(sqlite_transactions);
 
-        AccountDAO sqliteaccount = new SQLiteAccountDAO(MyContext.getCustomAppContext());
-        setAccountsDAO(sqliteaccount);
+        AccountDAO sqlite_account = new SQLiteAccountDAO();
+        setAccountsDAO(sqlite_account);
 
         // dummy data
         Account dummyAcct1 = new Account("12345A", "Yoda Bank", "Anakin Skywalker", 10000.0);
