@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import java.text.DateFormat;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.DBHandling.DBHandle;
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.TransactionDAO;
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.ExpenseType;
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.Transaction;
@@ -21,80 +23,116 @@ import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.Transaction;
 /**
  * Created by Anuradha Niroshan on 03/12/2015.
  */
-public class SQLiteTransactionDAO extends SQLiteOpenHelper implements TransactionDAO {
+public class SQLiteTransactionDAO implements TransactionDAO {
 
-    private static final String DATABASE_NAME = "130227F";
-    private static final int DATABASE_VERSION = 1;
-    private static final String TABLE_NAME="transaction";
-    private static final String ACCOUNT_NO="account_no";
-    private static final String EXPENSE_TYPE="expense_type";
-    private static final String AMOUNT="amount";
-    private static final String DATE="initial_date";
 
-    public  SQLiteTransactionDAO(Context context){
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+
+    public  SQLiteTransactionDAO(){
+
     }
 
 
     @Override
     public void logTransaction(Date date, String accountNo, ExpenseType expenseType, double amount) {
-        SQLiteDatabase db=this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(ACCOUNT_NO, accountNo);
-        values.put(EXPENSE_TYPE, expenseType.toString());
-        values.put(DATE, date.toString());
-        values.put(AMOUNT, amount);
-        db.insert(TABLE_NAME, null, values);
-        values.clear();
+        SQLiteDatabase db = null;
 
-        db.close(); // Closing database connection
+        try {
+            db = DBHandle.getWritableDatabase();
+
+            ContentValues values = new ContentValues();
+            values.put(DBHandle.TRANSACTION_ACCOUNT_NO, accountNo);
+            values.put(DBHandle.TRANSACTION_DATE, DBHandle.getTimeAsString(date));
+            switch (expenseType) {
+                case EXPENSE:
+                    values.put(DBHandle.TRANSACTION_TYPE, "E");
+                    break;
+                case INCOME:
+                    values.put(DBHandle.TRANSACTION_TYPE, "I");
+                    break;
+            }
+            values.put(DBHandle.TRANSACTION_AMOUNT, amount);
+
+            db.insert(DBHandle.TRANSACTION_TABLE, null, values);
+        } catch (SQLiteException e) {
+            e.printStackTrace();
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+        }
     }
 
     @Override
     public List<Transaction> getAllTransactionLogs() {
-        List<Transaction> transactionList = new ArrayList<>();
+        ArrayList<Transaction> transactionsList = new ArrayList<>();
+        SQLiteDatabase db = null;
+        Cursor cursor = null;
+        try {
+            db = DBHandle.getWritableDatabase();
 
-        String selectQuery = "SELECT "+"*"+" FROM "+TABLE_NAME;
+            cursor = db.query(DBHandle.TRANSACTION_TABLE, null, null, null, null, null, null);
+            if (cursor.moveToFirst()) {
+                do {
 
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery(selectQuery, null);
-
-        if (cursor.moveToFirst()) {
-            do {
-                Transaction tansact=new Transaction(null,null,null,0);
-                DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
-                tansact.setAccountNo(cursor.getString(0));
-                tansact.setExpenseType(ExpenseType.valueOf(cursor.getString(1)));
-                try {
-                    tansact.setDate(df.parse(cursor.getString(2)));
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-                tansact.setAmount(cursor.getDouble(3));
-                transactionList.add(tansact);
-            } while (cursor.moveToNext());
+                    Transaction transaction = new Transaction(DBHandle.getTimeAsValue(cursor.getString(2)), cursor.getString(1), null, Double.parseDouble(cursor.getString(4)));
+                    switch (cursor.getString(3)) {
+                        case "E":
+                            transaction.setExpenseType(ExpenseType.EXPENSE);
+                            break;
+                        case "I":
+                            transaction.setExpenseType(ExpenseType.INCOME);
+                            break;
+                    }
+                    transactionsList.add(transaction);
+                } while (cursor.moveToNext());
+            }
+        } catch (SQLiteException e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (db != null) {
+                db.close();
+            }
         }
-        db.close();
-        // return transList list
-        return transactionList;
+        return transactionsList;
     }
 
     @Override
     public List<Transaction> getPaginatedTransactionLogs(int limit) {
-        return null;
+        ArrayList<Transaction> transactionsList = new ArrayList<>();
+        SQLiteDatabase db = null;
+        Cursor cursor = null;
+        try {
+            db = DBHandle.getWritableDatabase();
+
+            cursor = db.query(DBHandle.TRANSACTION_TABLE, null, null, null, null, null, DBHandle.TRANSACTION_ID + " DESC", String.valueOf(limit));
+            if (cursor.moveToFirst()) {
+                do {
+                    Transaction transaction = new Transaction(DBHandle.getTimeAsValue(cursor.getString(2)), cursor.getString(1), null, Double.parseDouble(cursor.getString(4)));
+                    switch (cursor.getString(3)) {
+                        case "E":
+                            transaction.setExpenseType(ExpenseType.EXPENSE);
+                            break;
+                        case "I":
+                            transaction.setExpenseType(ExpenseType.INCOME);
+                            break;
+                    }
+                    transactionsList.add(transaction);
+                } while (cursor.moveToNext());
+            }
+        } catch (SQLiteException e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (db != null) {
+                db.close();
+            }
+        }
+        return transactionsList;
     }
 
-    @Override
-    public void onCreate(SQLiteDatabase db) {
-        String MYdatabase = "CREATE TABLE " +TABLE_NAME+ " ("
-                + ACCOUNT_NO + " TEXT PRIMARY KEY, " +EXPENSE_TYPE+ " TEXT, "
-                +DATE+ " DATE," +AMOUNT+" DOUBLE"+");";
-        db.execSQL(MYdatabase);
-
-    }
-
-    @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
-    }
 }
